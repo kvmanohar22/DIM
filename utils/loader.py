@@ -157,8 +157,8 @@ class Loader(object):
    def load_single(self, idx):
       """ Loads inputs and outputs at index: `idx`"""
       img = self.load_image(idx)
-      tri = self.load_image(idx)
-      alp = self.load_image(idx)
+      tri = self.load_trimap(idx)
+      alp = self.load_alpha_matte(idx)
 
       img, tri, alp = self.preprocess(img, tri, alp, self.train_mode)
 
