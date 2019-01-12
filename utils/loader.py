@@ -16,7 +16,7 @@ from chainercv.transforms import random_crop
 from chainercv.transforms import center_crop
 from chainercv.transforms import random_flip
 
-from options import Options
+from DIM.options import Options
 
 class Preprocess(object):
    def __init__(self, H, W):
@@ -35,8 +35,8 @@ class Preprocess(object):
       img, tri, alp = args
       img, params = crop_type(img, shape, return_param=True)
       x_slice, y_slice = params["x_slice"], params["y_slice"]
-      tri = tri[y_slice, x_slice]
-      alp = alp[y_slice, x_slice]
+      tri = tri[:, y_slice, x_slice]
+      alp = alp[:, y_slice, x_slice]
       return img, tri, alp
 
    def resize(self, args, size):
@@ -60,7 +60,6 @@ class Preprocess(object):
       """
       img, tri, alp = args
       img, params = random_flip(img, return_param=True)
-      x_flip, y_flip = , params["y_flip"]
       if params["x_flip"]:
          tri = flip(tri, x_flip=True)
          alp = flip(alp, x_flip=True)
@@ -69,7 +68,7 @@ class Preprocess(object):
          alp = flip(alp, y_flip=True)
       return img, tri, alp
 
-   def train_mode(self, img, tri, alp):
+   def train_mode_p(self, img, tri, alp):
       """ Preprocessing during train mode
 
       Args:
@@ -81,14 +80,16 @@ class Preprocess(object):
       img, tri, alp = self.crop((img, tri, alp), (self.H, self.W))
 
       # Step 2 (Random cropping to 480x480, 640x640 and back to 320x320)
-      img, tri, alp = self.crop((img, tri, alp), (480, 480))
-      img, tri, alp = self.crop((img, tri, alp), (640, 640))
-      img, tri, alp = self.resize((img, tri, alp), (self.H, self.W))
+      if False:
+         img, tri, alp = self.crop((img, tri, alp), (480, 480))
+         img, tri, alp = self.crop((img, tri, alp), (640, 640))
+         img, tri, alp = self.resize((img, tri, alp), (self.H, self.W))
 
       # Step 3 (Random flipping)
       img, tri, alp = self.flip((img, tri, alp))
+      return img, tri, alp
 
-   def test_mode(self, img, tri, alp):
+   def test_mode_p(self, img, tri, alp):
       """ Preprocessing during test mode
 
       Args:
@@ -100,19 +101,14 @@ class Preprocess(object):
                                 crop_type=center_crop)
       return img, tri, alp
 
-   def __call__(self, img, tri, alp, train_mode):
-      img = np.swapaxes(img, (2, 0, 1))
-      tri = np.swapaxes(tri, (2, 0, 1))
-      alp = np.swapaxes(alp, (2, 0, 1))
-      
-      if train_mode:
-         img, tri, alp = self.train_mode(img, tri, alp)
-      else:
-         img, tri, alp = self.test_mode(img, tri, alp)
+   def __call__(self, img, tri, alp, train=False):
+      img = np.swapaxes(np.swapaxes(img, 0, 2), 1, 2)
 
-      img = np.swapaxes(img, (1, 2, 0))
-      tri = np.swapaxes(tri, (1, 2, 0))
-      alp = np.swapaxes(alp, (1, 2, 0))
+      if train:
+         img, tri, alp = self.train_mode_p(img, tri, alp)
+      else:
+         img, tri, alp = self.test_mode_p(img, tri, alp)
+
       return img, tri, alp
 
 class Loader(object):
@@ -122,37 +118,43 @@ class Loader(object):
    def __init__(self, opts):
       self.H = opts["H"]
       self.W = opts["W"]
-      self.use_cuda = opts["use_cuda"]
+      self.gpu_id = opts["gpu_id"] >= 0
       self.train_mode = opts["train_mode"]
-
+      self.type = "train" if self.train_mode else "test"
       self.preprocess = Preprocess(self.H, self.W)
 
       # Load the ids
       self.dataset_root = opts["dataset_root"]
-      self.ids = []
 
       # Variables
-      self.img_path = osp.join(self.dataset_root, "")
-      self.tri_path = osp.join(self.dataset_root, "")
-      self.alp_path = osp.join(self.dataset_root, "")
+      self.img_path = osp.join(self.dataset_root, self.type, "input")
+      self.tri_path = osp.join(self.dataset_root, self.type, "trimap")
+      self.alp_path = osp.join(self.dataset_root, self.type, "gt")
+
+      self.ids = [file for file in os.listdir(self.img_path)]
 
    def __len__(self):
       return len(self.ids)
 
    def load_image(self, idx):
       """ Loads image at index: `idx`"""
-      img_file = self.ids[idx]
-      return io.imread(self.img_path.format(img_file))
+      file = self.ids[idx]
+      return io.imread(osp.join(self.img_path, file))
 
    def load_trimap(self, idx):
       """ Loads tri map at index: `idx`"""
-      tri_file = self.ids[idx]
-      return io.imread(self.tri_path.format(tri_file))
+      file = self.ids[idx]
+      return io.imread(osp.join(self.tri_path, file))[None]
 
    def load_alpha_matte(self, idx):
       """ Loads alpha matte at index: `idx`"""
-      alp_file = self.ids[idx]
-      return io.imread(self.alp_path.format(alp_file))
+      file = self.ids[idx]
+      alp = io.imread(osp.join(self.alp_path, file))
+      if alp.ndim == 2:
+         alp = alp[None]
+      else:
+         alp = alp[..., 0][None]
+      return alp
 
    def load_single(self, idx):
       """ Loads inputs and outputs at index: `idx`"""
@@ -162,7 +164,9 @@ class Loader(object):
 
       img, tri, alp = self.preprocess(img, tri, alp, self.train_mode)
 
-      inputs  = np.dstack([img, tri])
+      inputs = np.empty((4, self.H, self.W))
+      inputs[:3, ...] = img
+      inputs[-1, ...] = tri
       outputs = alp
 
       return inputs, outputs
@@ -181,18 +185,13 @@ class Loader(object):
          inputs[idx]  = ins_outs[0]
          outputs[idx] = ins_outs[1]
 
-      if self.use_cuda:
+      if self.gpu_id >= 0:
          inputs, outputs = to_gpu(inputs), to_gpu(outputs)
       return inputs, outputs
 
-
 if __name__ == '__main__':
-   opts = Options().parse(train=True)
+   opts = Options().parse(train_mode=True)
    loader = Loader(opts)
-   img, tri, alp = loader.load_single(12)
-   print('Image: {}\nTriMap: {}\nMatte: {}'.format(img.shape, tri.shape, alp.shape))
-
-   opts = Options().parse(train=False)
-   loader = Loader(opts)
-   img, tri, alp = loader.load_single(12)
-   print('Image: {}\nTriMap: {}\nMatte: {}'.format(img.shape, tri.shape, alp.shape))
+   idx = 12
+   ins, outs = loader.load_single(idx)
+   print('Idx: {:2d} Inputs: {} Outputs: {}'.format(idx, ins.shape, outs.shape))
