@@ -1,4 +1,5 @@
 import numpy as np
+import cupy as cp
 import time
 
 import chainer
@@ -8,12 +9,14 @@ import chainer.links as L
 from chainer.backends.cuda import to_gpu
 from chainer.backends.cuda import to_cpu
 
-
 class EncoderDecoder(chainer.Chain):
-   def __init__(self):
+   def __init__(self, opts):
       super(EncoderDecoder, self).__init__()
-      self.ini_c = 4
-      self.out_c  = 64
+      self.ini_c   = 4
+      self.out_c   = 64
+      self.alpha   = opts["alpha"]
+      self.epsilon = opts["epsilon"]
+      self.batch_size = opts["batch_size"]
 
       with self.init_scope():
          self.conv1_1 = L.Convolution2D(self.ini_c, self.out_c, ksize=3, stride=1, pad=1)
@@ -106,6 +109,49 @@ class EncoderDecoder(chainer.Chain):
       x = F.sigmoid(self.convv(x))
 
       return x
+
+   def loss(self, outputs, targets, trimaps):
+      """ Compute the two losses
+      """
+
+      def alpha_prediction_loss(outputs, targets, wl):
+         """ Computes alpha prediction loss
+
+         Args:
+            outputs: Predicted alpha matte
+            targets: Target alpha matte
+         """
+         eps = cp.zeros_like(outputs, dtype=cp.float32) + self.epsilon
+         loss = F.sqrt(F.square(outputs - targets) + F.square(eps))
+         loss = F.squeeze(F.sum(loss * wl)) / F.sum(wl)
+         loss /= self.batch_size
+         return loss
+
+      def composition_loss(outputs, targets, wl):
+         """ Computes composition loss
+
+         Args:
+            outputs: Predicted RGB
+            targets: Target RGB
+         """
+         eps = cp.zeros_like(outputs, dtype=cp.float32) + self.epsilon
+         loss = F.sqrt(F.square(outputs - targets) + F.square(eps)) / 255.0
+         
+         loss = F.squeeze(F.sum(loss * wl)) / F.sum(wl)
+         loss /= self.batch_size
+         return loss
+
+      output_matte, output_RGB = outputs
+      target_matte, target_RGB = targets
+
+      wl = F.where(cp.equal(trimaps, 128),
+              cp.zeros_like(outputs[0], dtype=cp.float32)+1.0,
+              cp.zeros_like(outputs[0], dtype=cp.float32)+0.0)
+      wl2 = F.repeat(wl.data, 3, axis=1)
+
+      l1 = alpha_prediction_loss(output_matte, target_matte, wl)
+      l2 = composition_loss(output_RGB, target_RGB, wl2)
+      return self.alpha * l1 + (1 - self.alpha) * l2
 
 if __name__ == '__main__':
    model = EncoderDecoder().to_gpu()
