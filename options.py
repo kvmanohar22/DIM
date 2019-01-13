@@ -1,4 +1,5 @@
 import argparse
+import os
 
 class Options(object):
    def __init__(self):
@@ -11,6 +12,8 @@ class Options(object):
                                help='Root of the project')
       self.parser.add_argument('--dataset_root', type=str, default='',
                                help='Root of dataset directory')
+      self.parser.add_argument('--log_root', type=str, default='',
+                               help="Directory to log data")
 
       # Image options
       self.parser.add_argument('--H', type=int, default=320)
@@ -22,10 +25,12 @@ class Options(object):
       self.parser.add_argument('--batch_size', type=int, default=32)
       self.parser.add_argument('--base_lr', type=float, default=1e-5)
       self.parser.add_argument('--gpu_id', type=int, default=-1)
-      self.parser.add_argument('--display_frq', type=int, default=10,
-                               help="Frequency at which log data is displayed during training")
       self.parser.add_argument('--ckpt_frq', type=int, default=10,
                                help="Frequency at which checkpoints are generated")
+      self.parser.add_argument('--alpha', type=float, default=0.5,
+                               help="Alpha value to weigh two types of losses")
+      self.parser.add_argument('--epsilon', type=float, default=1e-6,
+                               help="Small value used in loss computation")
 
       # Testing options
 
@@ -42,6 +47,11 @@ class Options(object):
          self.initialize()
       args = self.parser.parse_args()
       args.train_mode = train_mode
+
+      # Create directories
+      if not os.path.exists(args.log_root):
+         os.mkdir(args.log_root)
+
       opts = vars(args)
       self.print(opts)
 
