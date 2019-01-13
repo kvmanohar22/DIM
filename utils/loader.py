@@ -17,6 +17,7 @@ from chainercv.transforms import center_crop
 from chainercv.transforms import random_flip
 
 from DIM.options import Options
+from DIM.utils.utils import load_image, load_trimap, load_alpha_matte
 
 class Preprocess(object):
    def __init__(self, H, W):
@@ -102,8 +103,6 @@ class Preprocess(object):
       return img, tri, alp
 
    def __call__(self, img, tri, alp, train=False):
-      img = np.swapaxes(np.swapaxes(img, 0, 2), 1, 2)
-
       if train:
          img, tri, alp = self.train_mode_p(img, tri, alp)
       else:
@@ -120,6 +119,7 @@ class Loader(object):
       self.W = opts["W"]
       self.gpu_id = opts["gpu_id"] >= 0
       self.train_mode = opts["train_mode"]
+      self.batch_size = opts["batch_size"]
       self.type = "train" if self.train_mode else "test"
       self.preprocess = Preprocess(self.H, self.W)
 
@@ -132,44 +132,20 @@ class Loader(object):
       self.alp_path = osp.join(self.dataset_root, self.type, "gt")
 
       self.ids = [file for file in os.listdir(self.img_path)]
+      self.ids = self.ids[:2]
 
    def __len__(self):
       return len(self.ids)
 
-   def load_image(self, idx):
-      """ Loads image at index: `idx`"""
-      file = self.ids[idx]
-      return io.imread(osp.join(self.img_path, file))
-
-   def load_trimap(self, idx):
-      """ Loads tri map at index: `idx`"""
-      file = self.ids[idx]
-      return io.imread(osp.join(self.tri_path, file))[None]
-
-   def load_alpha_matte(self, idx):
-      """ Loads alpha matte at index: `idx`"""
-      file = self.ids[idx]
-      alp = io.imread(osp.join(self.alp_path, file))
-      if alp.ndim == 2:
-         alp = alp[None]
-      else:
-         alp = alp[..., 0][None]
-      return alp
-
    def load_single(self, idx):
       """ Loads inputs and outputs at index: `idx`"""
-      img = self.load_image(idx)
-      tri = self.load_trimap(idx)
-      alp = self.load_alpha_matte(idx)
+      img = load_image(osp.join(self.img_path, self.ids[idx]))
+      tri = load_trimap(osp.join(self.tri_path, self.ids[idx]))
+      alp = load_alpha_matte(osp.join(self.alp_path, self.ids[idx]))
 
       img, tri, alp = self.preprocess(img, tri, alp, self.train_mode)
 
-      inputs = np.empty((4, self.H, self.W))
-      inputs[:3, ...] = img
-      inputs[-1, ...] = tri
-      outputs = alp
-
-      return inputs, outputs
+      return img, tri, alp
 
    def load_batch(self, start_idx, end_idx):
       """ Loads batch of data
@@ -178,20 +154,21 @@ class Loader(object):
          start_idx: Starting index
          end_idx  : Ending index
       """
-      inputs  = np.empty((self.H, self,W, 4), dtype=np.float32)
-      outupts = np.empty((self.H, self.W, 1), dtype=np.float32)
+      images  = np.empty((self.batch_size, 3, self.H, self.W), dtype=np.float32)
+      trimaps = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
+      outputs = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
       for idx, curr_idx in enumerate(range(start_idx, end_idx)):
-         ins_outs = self.load_single(curr_idx)
-         inputs[idx]  = ins_outs[0]
-         outputs[idx] = ins_outs[1]
+         img, tri, alp = self.load_single(curr_idx)
+         images[idx]  = img
+         trimaps[idx] = tri
+         outputs[idx] = alp
 
-      if self.gpu_id >= 0:
-         inputs, outputs = to_gpu(inputs), to_gpu(outputs)
-      return inputs, outputs
+      return images, trimaps, outputs
 
 if __name__ == '__main__':
    opts = Options().parse(train_mode=True)
    loader = Loader(opts)
    idx = 12
-   ins, outs = loader.load_single(idx)
-   print('Idx: {:2d} Inputs: {} Outputs: {}'.format(idx, ins.shape, outs.shape))
+   images, trimaps, outputs = loader.load_single(idx)
+   print('Idx: {:2d} Images: {} Trimaps: {} Outputs: {}'.format(
+      idx, images.shape, trimaps.shape, outputs.shape))
