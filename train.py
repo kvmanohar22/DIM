@@ -19,7 +19,8 @@ from chainer.backends.cuda import to_cpu
 
 def mkdirs(paths):
    for path in paths:
-      os.mkdir(path)
+      if not os.path.exists(path):
+         os.mkdir(path)
 
 def save(args, epoch, root):
    p_alp = CHW2HWC(args[0])
@@ -92,7 +93,13 @@ def main(opts):
          end_time = time.time()
 
          # Predict RGB
-         predicted_RGB = (blend((to_cpu(predictions.data) * 255).astype(np.uint8), fgs, bgs) / 255.0).astype(np.float32)
+         # predicted_matte = (to_cpu(predictions.data) * 255).astype(np.uint8)
+         predicted_alp = to_cpu(predictions.data)
+         predicted_matte = np.where(np.equal(to_cpu(trimaps), 128),
+                                    predicted_alp,
+                                    to_cpu(outputs))
+
+         predicted_RGB = (blend((predicted_matte*255).astype(np.uint8), fgs, bgs) / 255.0).astype(np.float32)
          # print(predictions.dtype)
          # print(np.max(to_cpu(predictions.data)))
 
@@ -112,7 +119,7 @@ def main(opts):
          optimizer.update()
 
          # Save outputs
-         args = [(to_cpu(predictions.data) * 255).astype(np.uint8), 
+         args = [(predicted_matte * 255).astype(np.uint8), 
                  (to_cpu(outputs) * 255).astype(np.uint8),
                  (to_cpu(predicted_RGB) * 255).astype(np.uint8),
                  (to_cpu(images) * 255).astype(np.uint8)]

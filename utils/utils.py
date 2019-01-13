@@ -13,7 +13,7 @@ def blend(alpha, FG, BG):
    img   = alpha * FG + (1 - alpha) * BG
    return img.astype(np.uint8)
 
-def extract_FG_BG(image, alpha):
+def extract_FG(image, alpha):
    """ Extracts fore-ground and background images
 
    Args:
@@ -22,8 +22,29 @@ def extract_FG_BG(image, alpha):
    """
    alpha = np.repeat(alpha, 3, axis=1) / 255
    FG = alpha * image
+   return FG.astype(np.uint8)
+
+def extract_BG(image, alpha):
+   """ Extracts fore-ground and background images
+
+   Args:
+      image: (N, 3, H, W) Image
+      alpha: (N, 1, H, W) alpha matte
+   """
+   alpha = np.repeat(alpha, 3, axis=1) / 255
    BG = (1 - alpha) * image
-   return FG.astype(np.uint8), BG.astype(np.uint8)
+   return BG.astype(np.uint8)
+
+def extract_FG_BG(image, alpha):
+   """ Extracts fore-ground and background images
+
+   Args:
+      image: (N, 3, H, W) Image
+      alpha: (N, 1, H, W) alpha matte
+   """
+   FG = extract_FG(image, alpha)
+   BG = extract_BG(image, alpha)
+   return FG, BG
 
 def CHW2HWC(images):
    """ Convert images from CHW format to HWC format

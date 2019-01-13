@@ -77,8 +77,8 @@ class Preprocess(object):
       tri: Input tri map
       alp: Input alpha matte
       """
-      # Step 1 (Resize to HxW)
-      img, tri, alp = self.crop((img, tri, alp), (self.H, self.W))
+      # Step 1 (Resize to HxW) TODO: Revert me back
+      img, tri, alp = self.crop((img, tri, alp), (self.H, self.W), center_crop)
 
       # Step 2 (Random cropping to 480x480, 640x640 and back to 320x320)
       if False:
