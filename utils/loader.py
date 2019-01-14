@@ -50,6 +50,8 @@ class Preprocess(object):
       img, tri, alp = args
       img = resize(img, size)
       tri = resize(tri, size)
+      if alp is None:
+         return img, tri
       alp = resize(alp, size)
       return img, tri, alp
 

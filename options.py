@@ -33,6 +33,12 @@ class Options(object):
                                help="Small value used in loss computation")
 
       # Testing options
+      self.parser.add_argument('--ckpt_path', type=str, default='',
+                               help='Path to Checkpoint')
+      self.parser.add_argument('--img_path', type=str, default='',
+                               help='Path to Image')
+      self.parser.add_argument('--tri_path', type=str, default='',
+                               help='Path to Trimap')
 
    def print(self, opts):
       print('-'*40)
@@ -49,7 +55,7 @@ class Options(object):
       args.train_mode = train_mode
 
       # Create directories
-      if not os.path.exists(args.log_root):
+      if not os.path.exists(args.log_root) and args.log_root != '':
          os.mkdir(args.log_root)
 
       opts = vars(args)
