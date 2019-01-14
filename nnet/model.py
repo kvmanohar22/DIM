@@ -135,7 +135,7 @@ class EncoderDecoder(chainer.Chain):
          """
          eps = cp.zeros_like(outputs, dtype=cp.float32) + self.epsilon
          loss = F.sqrt(F.square(outputs - targets) + F.square(eps)) / 255.0
-         loss = F.mean(F.squeeze(F.sum(loss * wl)) / F.sum(wl, axis=(1, 2, 3)))
+         loss = F.mean(F.sum(loss * wl, axis=(1, 2, 3)) / F.sum(wl, axis=(1, 2, 3)))
          return loss
 
       output_matte, output_RGB = outputs
@@ -147,9 +147,8 @@ class EncoderDecoder(chainer.Chain):
       wl2 = F.repeat(wl.data, 3, axis=1)
 
       l1 = alpha_prediction_loss(output_matte, target_matte, wl)
-      # l2 = composition_loss(output_RGB, target_RGB, wl2)
-      # return self.alpha * l1 + (1 - self.alpha) * l2
-      return l1
+      l2 = composition_loss(output_RGB, target_RGB, wl2)
+      return self.alpha * l1 + (1 - self.alpha) * l2
 
 if __name__ == '__main__':
    model = EncoderDecoder().to_gpu()

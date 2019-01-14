@@ -8,7 +8,7 @@ from skimage import io
 from nnet.model import EncoderDecoder
 from options import Options
 from utils.loader import Loader
-from utils.utils import extract_FG_BG, blend, CHW2HWC
+from utils.utils import extract_FG_BG, blend, CHW2HWC, mkdirs
 
 from chainer import optimizers
 from chainer import serializers
@@ -17,12 +17,8 @@ from chainer.backends import cuda
 from chainer.backends.cuda import to_gpu
 from chainer.backends.cuda import to_cpu
 
-def mkdirs(paths):
-   for path in paths:
-      if not os.path.exists(path):
-         os.mkdir(path)
 
-def save(args, epoch, idx, root):
+def save(args, epoch, idx, root, ids):
    p_alp = CHW2HWC(args[0])
    t_alp = CHW2HWC(args[1])
    p_RGB = CHW2HWC(args[2])
@@ -30,21 +26,20 @@ def save(args, epoch, idx, root):
 
    mkdirs([osp.join(root, 'epoch_{}'.format(epoch))])
 
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_iidx_{}_idx_{}.png".format(idx, 0)), np.squeeze(t_alp[0]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_iidx_{}_idx_{}.png".format(idx, 0)), np.squeeze(p_alp[0]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_iidx_{}_idx_{}.png".format(idx, 0)), t_RGB[0])
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_iidx_{}_idx_{}.png".format(idx, 0)), p_RGB[0])
+   np.save(osp.join(root, "epoch_{}".format(epoch), "t_alp_{}.png".format(ids[0], 0)), np.squeeze(t_alp[0]))
+   np.save(osp.join(root, "epoch_{}".format(epoch), "p_alp_{}.png".format(ids[0], 0)), np.squeeze(p_alp[0]))
+   np.save(osp.join(root, "epoch_{}".format(epoch), "t_RGB_{}.png".format(ids[0], 0)), t_RGB[0])
+   np.save(osp.join(root, "epoch_{}".format(epoch), "p_RGB_{}.png".format(ids[0], 0)), p_RGB[0])
 
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_iidx_{}_idx_{}.png".format(idx, 1)), np.squeeze(t_alp[1]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_iidx_{}_idx_{}.png".format(idx, 1)), np.squeeze(p_alp[1]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_iidx_{}_idx_{}.png".format(idx, 1)), t_RGB[1])
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_iidx_{}_idx_{}.png".format(idx, 1)), p_RGB[1])
+   np.save(osp.join(root, "epoch_{}".format(epoch), "t_alp_{}.png".format(ids[1], 1)), np.squeeze(t_alp[1]))
+   np.save(osp.join(root, "epoch_{}".format(epoch), "p_alp_{}.png".format(ids[1], 1)), np.squeeze(p_alp[1]))
+   np.save(osp.join(root, "epoch_{}".format(epoch), "t_RGB_{}.png".format(ids[1], 1)), t_RGB[1])
+   np.save(osp.join(root, "epoch_{}".format(epoch), "p_RGB_{}.png".format(ids[1], 1)), p_RGB[1])
 
 def main(opts):
    model = EncoderDecoder(opts)
    loader = Loader(opts)
    optimizer = optimizers.Adam(alpha=opts["base_lr"], amsgrad=True)
-   # optimizer = optimizers.MomentumSGD(lr=opts["base_lr"])
 
    MAX_EPOCHS = opts["max_epochs"]
    BATCH_SIZE = opts["batch_size"]
@@ -71,7 +66,6 @@ def main(opts):
          inputs[:, :3, ...] = images
          inputs[:, 3:, ...] = trimaps
 
-         # print(ids)
          # Transfer to GPU
          if opts["gpu_id"] >= 0:
             inputs  = to_gpu(inputs) / 255.0
@@ -79,35 +73,17 @@ def main(opts):
             trimaps = to_gpu(trimaps)
             outputs = to_gpu(outputs) / 255.0
 
-         # print(inputs.dtype)
-         # print(images.dtype)
-         # print(trimaps.dtype)
-         # print(outputs.dtype)
-
-         # print(np.max(inputs))
-         # print(np.max(images))
-         # print(np.max(trimaps))
-         # print(np.max(outputs))
-
          # Forward pass
          begin_time = time.time()
          predictions = model(inputs)
          end_time = time.time()
 
          # Predict RGB
-         # predicted_matte = (to_cpu(predictions.data) * 255).astype(np.uint8)
          predicted_alp = to_cpu(predictions.data)
          predicted_matte = np.where(np.equal(to_cpu(trimaps), 128),
                                     predicted_alp,
                                     to_cpu(outputs))
-
          predicted_RGB = (blend((predicted_matte*255).astype(np.uint8), fgs, bgs) / 255.0).astype(np.float32)
-         # print(predictions.dtype)
-         # print(np.max(to_cpu(predictions.data)))
-
-         # print(predicted_RGB.dtype)
-         # print(np.max(predicted_RGB))
-         # exit(0)
 
          # Compute loss
          if opts["gpu_id"] >= 0:
@@ -121,17 +97,17 @@ def main(opts):
          optimizer.update()
 
          # log
-         print(formatter.format(epoch, MAX_EPOCHS+1, idx+1, n_batches, end_time-begin_time, optimizer.lr, str(loss_data)))
+         if np.mod(idx, 5) == 0:
+            print(formatter.format(epoch, MAX_EPOCHS+1, idx+1, n_batches, end_time-begin_time, optimizer.lr, str(loss_data)))
 
          # Save images
-         # if np.mod(epoch, 150) == 0:
-         if True:
-            # Save outputs
+         if np.mod(epoch, 150) == 0:
             args = [(predicted_matte * 255).astype(np.uint8), 
                     (to_cpu(outputs) * 255).astype(np.uint8),
                     (to_cpu(predicted_RGB) * 255).astype(np.uint8),
                     (to_cpu(images) * 255).astype(np.uint8)]
-            save(args, epoch, idx, opts["log_root"])
+            save(args, epoch, idx, opts["log_root"], ids)
+      print('-'*10)
 
       # Checkpoint
       if np.mod(epoch, 250) == 0:
