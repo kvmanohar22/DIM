@@ -14,7 +14,7 @@ def blend(alpha, FG, BG):
    return img.astype(np.uint8)
 
 def extract_FG(image, alpha):
-   """ Extracts fore-ground and background images
+   """ Extracts fore-ground from an image given alpha
 
    Args:
       image: (N, 3, H, W) Image
@@ -25,7 +25,7 @@ def extract_FG(image, alpha):
    return FG.astype(np.uint8)
 
 def extract_BG(image, alpha):
-   """ Extracts fore-ground and background images
+   """ Extracts background from an image given alpha
 
    Args:
       image: (N, 3, H, W) Image

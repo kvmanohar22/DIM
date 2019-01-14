@@ -72,11 +72,15 @@ class Preprocess(object):
       return img, tri, alp
 
    def is_valid(self, alp):
-      """ Checks if the generated alpha matte is valid """
-      for _alp in alp:
-         if np.all(np.equal(alp, 255)):
-            print('Invalid matte encountered')
-            return False
+      """ Checks if the generated alpha matte is valid
+      Note: Currently flagging those images with less than 7%
+      """
+      area = np.prod(alp.shape)
+      nonzero_area = np.count_nonzero(alp)
+      zero_area    = area - nonzero_area
+
+      if zero_area <= area * 0.07 or nonzero_area <= area * 0.07:
+         return False
       return True
 
    def train_mode_p(self, img, tri, alp):
@@ -149,20 +153,21 @@ class Loader(object):
 
    def load_single(self, idx):
       """ Loads inputs and outputs at index: `idx`"""
+      count = 0
+      while True:
+         img_o = load_image(osp.join(self.img_path, self.ids[idx]))
+         tri_o = load_trimap(osp.join(self.tri_path, self.ids[idx]))
+         alp_o = load_alpha_matte(osp.join(self.alp_path, self.ids[idx]))
 
-      img_o = load_image(osp.join(self.img_path, self.ids[idx]))
-      tri_o = load_trimap(osp.join(self.tri_path, self.ids[idx]))
-      alp_o = load_alpha_matte(osp.join(self.alp_path, self.ids[idx]))
-      
-      img, tri, alp = self.preprocess.resize((img_o, tri_o, alp_o), (self.H, self.W))
+         img, tri, alp, is_valid = self.preprocess(img_o, tri_o, alp_o, self.train_mode)
+         if is_valid:
+            return img, tri, alp
+         else:
+            count += 1
+            if count > 10:
+               img, tri, alp = self.preprocess.resize((img_o, tri_o, alp_o), (self.H, self.W))
+               return img, tri, alp
       return img, tri, alp
-      
-      img, tri, alp, is_valid = self.preprocess(img_o, tri_o, alp_o, self.train_mode)
-      if is_valid:
-         return img, tri, alp
-      else:
-         img, tri, alp = self.preprocess.resize((img_o, tri_o, alp_o), (self.H, self.W))
-         return img, tri, alp
 
    def load_batch(self, start_idx, end_idx):
       """ Loads batch of data
