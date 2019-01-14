@@ -26,15 +26,15 @@ def save(args, epoch, idx, root, ids):
 
    mkdirs([osp.join(root, 'epoch_{}'.format(epoch))])
 
-   np.save(osp.join(root, "epoch_{}".format(epoch), "t_alp_{}.png".format(ids[0], 0)), np.squeeze(t_alp[0]))
-   np.save(osp.join(root, "epoch_{}".format(epoch), "p_alp_{}.png".format(ids[0], 0)), np.squeeze(p_alp[0]))
-   np.save(osp.join(root, "epoch_{}".format(epoch), "t_RGB_{}.png".format(ids[0], 0)), t_RGB[0])
-   np.save(osp.join(root, "epoch_{}".format(epoch), "p_RGB_{}.png".format(ids[0], 0)), p_RGB[0])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_{}".format(ids[0], 0)), np.squeeze(t_alp[0]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_{}".format(ids[0], 0)), np.squeeze(p_alp[0]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_{}".format(ids[0], 0)), t_RGB[0])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_{}".format(ids[0], 0)), p_RGB[0])
 
-   np.save(osp.join(root, "epoch_{}".format(epoch), "t_alp_{}.png".format(ids[1], 1)), np.squeeze(t_alp[1]))
-   np.save(osp.join(root, "epoch_{}".format(epoch), "p_alp_{}.png".format(ids[1], 1)), np.squeeze(p_alp[1]))
-   np.save(osp.join(root, "epoch_{}".format(epoch), "t_RGB_{}.png".format(ids[1], 1)), t_RGB[1])
-   np.save(osp.join(root, "epoch_{}".format(epoch), "p_RGB_{}.png".format(ids[1], 1)), p_RGB[1])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_{}".format(ids[1], 1)), np.squeeze(t_alp[1]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_{}".format(ids[1], 1)), np.squeeze(p_alp[1]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_{}".format(ids[1], 1)), t_RGB[1])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_{}".format(ids[1], 1)), p_RGB[1])
 
 def main(opts):
    model = EncoderDecoder(opts)
@@ -54,13 +54,15 @@ def main(opts):
    formatter = "Epoch: [{:3d}/{:3d}] Batch: [{:2d}/{:2d}] Time: {:.3f}s LR: {:.12f} Loss: {}"
 
    # Start the training process
+   total_loss = []
    for epoch in range(1, MAX_EPOCHS+1):
+      epoch_loss = []
       for idx, (batch_begin, batch_end) in enumerate(
             zip(range(0, n_imgs+1, BATCH_SIZE), 
                 range(BATCH_SIZE, n_imgs+1, BATCH_SIZE))):
 
          # Prepare the data         
-         images, trimaps, outputs, ids = loader.load_batch(batch_begin, batch_end)
+         images, trimaps, outputs, ids = loader.load_batch(batch_begin, batch_end, idx==0)
          fgs, bgs = extract_FG_BG(images, outputs)
          inputs = np.empty((BATCH_SIZE, 4, H, W), dtype=np.float32)
          inputs[:, :3, ...] = images
@@ -82,7 +84,7 @@ def main(opts):
          predicted_alp = to_cpu(predictions.data)
          predicted_matte = np.where(np.equal(to_cpu(trimaps), 128),
                                     predicted_alp,
-                                    to_cpu(outputs))
+                                    to_cpu(trimaps) / 255.0)
          predicted_RGB = (blend((predicted_matte*255).astype(np.uint8), fgs, bgs) / 255.0).astype(np.float32)
 
          # Compute loss
@@ -90,6 +92,7 @@ def main(opts):
             predicted_RGB = to_gpu(predicted_RGB)
          loss = model.loss([predictions, predicted_RGB], [outputs, images], trimaps)
          loss_data = np.squeeze(to_cpu(loss.data))
+         epoch_loss.append(loss_data)
 
          # Update the weights
          model.cleargrads()
@@ -107,11 +110,13 @@ def main(opts):
                     (to_cpu(predicted_RGB) * 255).astype(np.uint8),
                     (to_cpu(images) * 255).astype(np.uint8)]
             save(args, epoch, idx, opts["log_root"], ids)
-      print('-'*10)
+      print('-'*10+' Avg epoch loss: {:.3f}'.format(np.mean(epoch_loss)))
+      total_loss.append(np.mean(epoch_loss))
 
       # Checkpoint
       if np.mod(epoch, 250) == 0:
          serializers.save_npz(osp.join(opts["log_root"], "ckpt_{}".format(epoch)), model)
+         np.save(osp.join(opts["logs_root"], "epoch_{}.loss".format(epoch)), np.array(loss))
 
 if __name__ == '__main__':
    opts = Options().parse(train_mode=True)

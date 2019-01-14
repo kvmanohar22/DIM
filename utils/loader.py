@@ -140,6 +140,9 @@ class Loader(object):
 
       # Load the ids
       self.dataset_root = opts["dataset_root"]
+      self.trimaps = os.listdir(osp.join(self.dataset_root, self.type, "trimap"))
+      assert len(self.trimaps) >= 1, "No trimaps found"
+      self.curr_trimap_idx = -1
 
       # Variables
       self.img_path = osp.join(self.dataset_root, self.type, "input")
@@ -151,12 +154,12 @@ class Loader(object):
    def __len__(self):
       return len(self.ids)
 
-   def load_single(self, idx):
+   def load_single(self, idx, trimap_base_dir):
       """ Loads inputs and outputs at index: `idx`"""
       count = 0
       while True:
          img_o = load_image(osp.join(self.img_path, self.ids[idx]))
-         tri_o = load_trimap(osp.join(self.tri_path, self.ids[idx]))
+         tri_o = load_trimap(osp.join(self.tri_path, trimap_base_dir, self.ids[idx]))
          alp_o = load_alpha_matte(osp.join(self.alp_path, self.ids[idx]))
 
          img, tri, alp, is_valid = self.preprocess(img_o, tri_o, alp_o, self.train_mode)
@@ -169,19 +172,25 @@ class Loader(object):
                return img, tri, alp
       return img, tri, alp
 
-   def load_batch(self, start_idx, end_idx):
+   def load_batch(self, start_idx, end_idx, change_tri_map):
       """ Loads batch of data
 
       Args:
          start_idx: Starting index
          end_idx  : Ending index
       """
+      if change_tri_map and self.curr_trimap_idx == -1:
+         self.curr_trimap_idx = 0
+      elif change_tri_map:
+         next_val = self.curr_trimap_idx+1
+         self.curr_trimap_idx = next_val if next_val < len(self.trimaps) else 0
+
       images  = np.empty((self.batch_size, 3, self.H, self.W), dtype=np.float32)
       trimaps = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
       outputs = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
       files   = []
       for idx, curr_idx in enumerate(range(start_idx, end_idx)):
-         img, tri, alp = self.load_single(curr_idx)
+         img, tri, alp = self.load_single(curr_idx, self.trimaps[self.curr_trimap_idx])
          images[idx]  = img
          trimaps[idx] = tri
          outputs[idx] = alp

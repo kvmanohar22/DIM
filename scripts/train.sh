@@ -2,7 +2,7 @@ GPU_ID=0
 DATASET_ROOT=dataset/alpamatting/low_res
 LOG_ROOT=log
 BATCH_SIZE=2
-BASE_LR=0.000001
+BASE_LR=0.00001
 MAX_EPOCHS=1000
 
 CUDA_VISIBLE_DEVICES=0 python train.py \
