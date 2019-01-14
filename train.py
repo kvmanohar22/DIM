@@ -22,7 +22,7 @@ def mkdirs(paths):
       if not os.path.exists(path):
          os.mkdir(path)
 
-def save(args, epoch, root):
+def save(args, epoch, idx, root):
    p_alp = CHW2HWC(args[0])
    t_alp = CHW2HWC(args[1])
    p_RGB = CHW2HWC(args[2])
@@ -30,20 +30,21 @@ def save(args, epoch, root):
 
    mkdirs([osp.join(root, 'epoch_{}'.format(epoch))])
 
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_idx_{}.png".format(0)), np.squeeze(t_alp[0]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_idx_{}.png".format(0)), np.squeeze(p_alp[0]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_idx_{}.png".format(0)), t_RGB[0])
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_idx_{}.png".format(0)), p_RGB[0])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_iidx_{}_idx_{}.png".format(idx, 0)), np.squeeze(t_alp[0]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_iidx_{}_idx_{}.png".format(idx, 0)), np.squeeze(p_alp[0]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_iidx_{}_idx_{}.png".format(idx, 0)), t_RGB[0])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_iidx_{}_idx_{}.png".format(idx, 0)), p_RGB[0])
 
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_idx_{}.png".format(1)), np.squeeze(t_alp[1]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_idx_{}.png".format(1)), np.squeeze(p_alp[1]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_idx_{}.png".format(1)), t_RGB[1])
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_idx_{}.png".format(1)), p_RGB[1])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_iidx_{}_idx_{}.png".format(idx, 1)), np.squeeze(t_alp[1]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_alp_iidx_{}_idx_{}.png".format(idx, 1)), np.squeeze(p_alp[1]))
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_iidx_{}_idx_{}.png".format(idx, 1)), t_RGB[1])
+   io.imsave(osp.join(root, "epoch_{}".format(epoch), "p_RGB_iidx_{}_idx_{}.png".format(idx, 1)), p_RGB[1])
 
 def main(opts):
    model = EncoderDecoder(opts)
    loader = Loader(opts)
-   optimizer = optimizers.Adam(alpha=opts["base_lr"])
+   optimizer = optimizers.Adam(alpha=opts["base_lr"], amsgrad=True)
+   # optimizer = optimizers.MomentumSGD(lr=opts["base_lr"])
 
    MAX_EPOCHS = opts["max_epochs"]
    BATCH_SIZE = opts["batch_size"]
@@ -55,7 +56,7 @@ def main(opts):
    if opts["gpu_id"] >= 0:
       model.to_gpu()
    optimizer.setup(model)
-   formatter = "Epoch: [{:3d}/{:3d}] Batch: [{:2d}/{:2d}] Time: {:.3f}s LR: {:.6f} Loss: {}"
+   formatter = "Epoch: [{:3d}/{:3d}] Batch: [{:2d}/{:2d}] Time: {:.3f}s LR: {:.12f} Loss: {}"
 
    # Start the training process
    for epoch in range(1, MAX_EPOCHS+1):
@@ -64,12 +65,13 @@ def main(opts):
                 range(BATCH_SIZE, n_imgs+1, BATCH_SIZE))):
 
          # Prepare the data         
-         images, trimaps, outputs = loader.load_batch(batch_begin, batch_end)
+         images, trimaps, outputs, ids = loader.load_batch(batch_begin, batch_end)
          fgs, bgs = extract_FG_BG(images, outputs)
          inputs = np.empty((BATCH_SIZE, 4, H, W), dtype=np.float32)
          inputs[:, :3, ...] = images
          inputs[:, 3:, ...] = trimaps
 
+         # print(ids)
          # Transfer to GPU
          if opts["gpu_id"] >= 0:
             inputs  = to_gpu(inputs) / 255.0
@@ -118,18 +120,21 @@ def main(opts):
          loss.backward()
          optimizer.update()
 
-         # Save outputs
-         args = [(predicted_matte * 255).astype(np.uint8), 
-                 (to_cpu(outputs) * 255).astype(np.uint8),
-                 (to_cpu(predicted_RGB) * 255).astype(np.uint8),
-                 (to_cpu(images) * 255).astype(np.uint8)]
-         save(args, epoch, opts["log_root"])
-
          # log
          print(formatter.format(epoch, MAX_EPOCHS+1, idx+1, n_batches, end_time-begin_time, optimizer.lr, str(loss_data)))
 
+         # Save images
+         # if np.mod(epoch, 150) == 0:
+         if True:
+            # Save outputs
+            args = [(predicted_matte * 255).astype(np.uint8), 
+                    (to_cpu(outputs) * 255).astype(np.uint8),
+                    (to_cpu(predicted_RGB) * 255).astype(np.uint8),
+                    (to_cpu(images) * 255).astype(np.uint8)]
+            save(args, epoch, idx, opts["log_root"])
+
       # Checkpoint
-      if np.mod(epoch, 100) == 0:
+      if np.mod(epoch, 250) == 0:
          serializers.save_npz(osp.join(opts["log_root"], "ckpt_{}".format(epoch)), model)
 
 if __name__ == '__main__':

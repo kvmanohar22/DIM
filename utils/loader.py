@@ -69,6 +69,14 @@ class Preprocess(object):
          alp = flip(alp, y_flip=True)
       return img, tri, alp
 
+   def is_valid(self, alp):
+      """ Checks if the generated alpha matte is valid """
+      for _alp in alp:
+         if np.all(np.equal(alp, 255)):
+            print('Invalid matte encountered')
+            return False
+      return True
+
    def train_mode_p(self, img, tri, alp):
       """ Preprocessing during train mode
 
@@ -77,8 +85,8 @@ class Preprocess(object):
       tri: Input tri map
       alp: Input alpha matte
       """
-      # Step 1 (Resize to HxW) TODO: Revert me back
-      img, tri, alp = self.crop((img, tri, alp), (self.H, self.W), center_crop)
+      # Step 1 (Resize to HxW) 
+      img, tri, alp = self.crop((img, tri, alp), (self.H, self.W))
 
       # Step 2 (Random cropping to 480x480, 640x640 and back to 320x320)
       if False:
@@ -88,7 +96,8 @@ class Preprocess(object):
 
       # Step 3 (Random flipping)
       img, tri, alp = self.flip((img, tri, alp))
-      return img, tri, alp
+      valid = self.is_valid(alp)
+      return img, tri, alp, valid 
 
    def test_mode_p(self, img, tri, alp):
       """ Preprocessing during test mode
@@ -104,11 +113,11 @@ class Preprocess(object):
 
    def __call__(self, img, tri, alp, train=False):
       if train:
-         img, tri, alp = self.train_mode_p(img, tri, alp)
+         img, tri, alp, valid = self.train_mode_p(img, tri, alp)
       else:
          img, tri, alp = self.test_mode_p(img, tri, alp)
 
-      return img, tri, alp
+      return img, tri, alp, valid
 
 class Loader(object):
    """ Dataset loader
@@ -132,20 +141,26 @@ class Loader(object):
       self.alp_path = osp.join(self.dataset_root, self.type, "gt")
 
       self.ids = [file for file in os.listdir(self.img_path)]
-      self.ids = self.ids[:2]
 
    def __len__(self):
       return len(self.ids)
 
    def load_single(self, idx):
       """ Loads inputs and outputs at index: `idx`"""
-      img = load_image(osp.join(self.img_path, self.ids[idx]))
-      tri = load_trimap(osp.join(self.tri_path, self.ids[idx]))
-      alp = load_alpha_matte(osp.join(self.alp_path, self.ids[idx]))
 
-      img, tri, alp = self.preprocess(img, tri, alp, self.train_mode)
-
+      img_o = load_image(osp.join(self.img_path, self.ids[idx]))
+      tri_o = load_trimap(osp.join(self.tri_path, self.ids[idx]))
+      alp_o = load_alpha_matte(osp.join(self.alp_path, self.ids[idx]))
+      
+      img, tri, alp = self.preprocess.resize((img_o, tri_o, alp_o), (self.H, self.W))
       return img, tri, alp
+      
+      img, tri, alp, is_valid = self.preprocess(img_o, tri_o, alp_o, self.train_mode)
+      if is_valid:
+         return img, tri, alp
+      else:
+         img, tri, alp = self.preprocess.resize((img_o, tri_o, alp_o), (self.H, self.W))
+         return img, tri, alp
 
    def load_batch(self, start_idx, end_idx):
       """ Loads batch of data
@@ -157,13 +172,15 @@ class Loader(object):
       images  = np.empty((self.batch_size, 3, self.H, self.W), dtype=np.float32)
       trimaps = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
       outputs = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
+      files   = []
       for idx, curr_idx in enumerate(range(start_idx, end_idx)):
          img, tri, alp = self.load_single(curr_idx)
          images[idx]  = img
          trimaps[idx] = tri
          outputs[idx] = alp
+         files.append(self.ids[curr_idx])
 
-      return images, trimaps, outputs
+      return images, trimaps, outputs, files
 
 if __name__ == '__main__':
    opts = Options().parse(train_mode=True)

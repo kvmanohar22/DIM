@@ -84,3 +84,8 @@ def load_alpha_matte(path):
    else:
       alp = alp[None]
    return alp
+
+def mkdirs(paths):
+   for path in paths:
+      if not os.path.exists(path):
+         os.mkdir(path)
