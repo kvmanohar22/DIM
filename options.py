@@ -8,11 +8,9 @@ class Options(object):
 
    def initialize(self):
       # Directory options
-      self.parser.add_argument('--project_root', type=str, default='', 
-                               help='Root of the project')
       self.parser.add_argument('--dataset_root', type=str, default='',
                                help='Root of dataset directory')
-      self.parser.add_argument('--log_root', type=str, default='',
+      self.parser.add_argument('--log_root', type=str, default='log',
                                help="Directory to log data")
 
       # Image options
@@ -55,7 +53,7 @@ class Options(object):
       args.train_mode = train_mode
 
       # Create directories
-      if not os.path.exists(args.log_root) and args.log_root != '':
+      if not os.path.exists(args.log_root):
          os.mkdir(args.log_root)
 
       opts = vars(args)

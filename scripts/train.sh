@@ -1,6 +1,6 @@
 GPU_ID=0
-DATASET_ROOT=/home/ankush/kv/DIM/dataset/alpamatting/low_res
-LOG_ROOT=/home/ankush/kv/DIM/log
+DATASET_ROOT=dataset/alpamatting/low_res
+LOG_ROOT=log
 BATCH_SIZE=2
 BASE_LR=0.000001
 MAX_EPOCHS=1000
