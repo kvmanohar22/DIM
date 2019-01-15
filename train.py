@@ -104,7 +104,7 @@ def main(opts):
             print(formatter.format(epoch, MAX_EPOCHS+1, idx+1, n_batches, end_time-begin_time, optimizer.lr, str(loss_data)))
 
          # Save images
-         if np.mod(epoch, 20) == 0:
+         if np.mod(epoch, 10) == 0:
             args = [(predicted_matte * 255).astype(np.uint8), 
                     (to_cpu(outputs) * 255).astype(np.uint8),
                     (to_cpu(predicted_RGB) * 255).astype(np.uint8),
@@ -114,7 +114,7 @@ def main(opts):
       total_loss.append(np.mean(epoch_loss))
 
       # Checkpoint
-      if np.mod(epoch, 250) == 0:
+      if np.mod(epoch, 20) == 0:
          serializers.save_npz(osp.join(opts["log_root"], "ckpt_{}".format(epoch)), model)
          np.save(osp.join(opts["log_root"], "epoch_{}.loss".format(epoch)), np.array(total_loss))
 

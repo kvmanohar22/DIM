@@ -74,7 +74,8 @@ class EncoderDecoder(chainer.Chain):
          self.convv   = L.Convolution2D(self.out_c, 1, ksize=1, stride=1, pad=1, initialW=None)
 
       # Load VGG network weights
-      self.load_vgg_weights()
+      if opts["train_mode"]:
+         self.load_vgg_weights()
 
    def __call__(self, x):
       x = F.relu(self.conv1_1(x))

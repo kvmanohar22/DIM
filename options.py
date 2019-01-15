@@ -31,12 +31,14 @@ class Options(object):
                                help="Small value used in loss computation")
 
       # Testing options
-      self.parser.add_argument('--ckpt_path', type=str, default='',
+      self.parser.add_argument('--ckpt_path', type=str, default='ckpt/demo.npy',
                                help='Path to Checkpoint')
-      self.parser.add_argument('--img_path', type=str, default='',
+      self.parser.add_argument('--img_path', type=str, default='imgs/demo/imgs/img0.png',
                                help='Path to Image')
-      self.parser.add_argument('--tri_path', type=str, default='',
+      self.parser.add_argument('--tri_path', type=str, default='imgs/demo/trimaps/tri0.png',
                                help='Path to Trimap')
+      self.parser.add_argument('--newimgs_dir', type=str, default='imgs/demo/bgs',
+                               help='Directory containing new image to blend')
 
    def print(self, opts):
       print('-'*40)
