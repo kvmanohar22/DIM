@@ -74,8 +74,8 @@ def main(opts):
                               predicted_alp,
                               trimaps / 255)
 
-   fgs, bgs = extract_FG_BG(images, predicted_alp)
    predicted_matte = (predicted_matte*255).astype(np.uint8)
+   fgs, bgs = extract_FG_BG(images, predicted_matte)
    predicted_RGB = (blend(predicted_matte,
          fgs, bgs)).astype(np.uint8)
 
@@ -103,7 +103,7 @@ def main(opts):
          images, trimaps = Preprocess(H, W).resize((predicted_RGB[0], tri, None), (org_h, org_w))
 
          # Save the image
-         io.imsave(img_path.replace(".{}".format(extension), "_predicted_RGB.png"), images[0])
+         io.imsave(img_path.replace(".{}".format(extension), "_predicted_RGB.png"), CHW2HWC(images[None])[0])
 
 if __name__ == '__main__':
    opts = Options().parse(train_mode=False)
