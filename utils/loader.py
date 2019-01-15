@@ -25,7 +25,8 @@ class Preprocess(object):
       self.W = W
       self.size = (H, W)
 
-   def crop(self, args, shape, crop_type=random_crop):
+   # Change this to `random_crop`
+   def crop(self, args, shape, crop_type=center_crop):
       """ Randomly crops the inputs to size `shape`
 
       Args:

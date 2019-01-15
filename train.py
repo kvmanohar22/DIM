@@ -8,7 +8,7 @@ from skimage import io
 from nnet.model import EncoderDecoder
 from options import Options
 from utils.loader import Loader
-from utils.utils import extract_FG_BG, blend, CHW2HWC, mkdirs
+from utils.utils import extract_FG_BG, blend, CHW2HWC, mkdirs, MEAN
 
 from chainer import optimizers
 from chainer import serializers
@@ -65,7 +65,7 @@ def main(opts):
          images, trimaps, outputs, ids = loader.load_batch(batch_begin, batch_end, idx==0)
          fgs, bgs = extract_FG_BG(images, outputs)
          inputs = np.empty((BATCH_SIZE, 4, H, W), dtype=np.float32)
-         inputs[:, :3, ...] = images
+         inputs[:, :3, ...] = images - MEAN
          inputs[:, 3:, ...] = trimaps
 
          # Transfer to GPU
@@ -104,7 +104,7 @@ def main(opts):
             print(formatter.format(epoch, MAX_EPOCHS+1, idx+1, n_batches, end_time-begin_time, optimizer.lr, str(loss_data)))
 
          # Save images
-         if np.mod(epoch, 150) == 0:
+         if np.mod(epoch, 20) == 0:
             args = [(predicted_matte * 255).astype(np.uint8), 
                     (to_cpu(outputs) * 255).astype(np.uint8),
                     (to_cpu(predicted_RGB) * 255).astype(np.uint8),
@@ -116,7 +116,7 @@ def main(opts):
       # Checkpoint
       if np.mod(epoch, 250) == 0:
          serializers.save_npz(osp.join(opts["log_root"], "ckpt_{}".format(epoch)), model)
-         np.save(osp.join(opts["logs_root"], "epoch_{}.loss".format(epoch)), np.array(loss))
+         np.save(osp.join(opts["log_root"], "epoch_{}.loss".format(epoch)), np.array(total_loss))
 
 if __name__ == '__main__':
    opts = Options().parse(train_mode=True)

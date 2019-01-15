@@ -1,5 +1,9 @@
 import numpy as np
 from skimage import io
+import os
+
+MEAN = np.array(
+    [123.68, 116.779, 103.939], dtype=np.float32)[:, np.newaxis, np.newaxis]
 
 def blend(alpha, FG, BG):
    """ Generates a new image given alpha values
