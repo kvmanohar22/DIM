@@ -21,26 +21,80 @@ It's recommended to use anaconda environment.
 
 ## Usage
 
+### Directory structure
+```bash
+/path/to/DIM
+         |-> ckpt/
+         |     |---> demo.npy           # Checkpoint files are loaded from here
+         |-> nnet/
+         |     |---> model.py           # Builds graph of the neural network
+         |-> scripts/
+         |     |---> train.sh           # Training script
+         |     |---> demo.sh            # Demo script
+         |     |---> test_functions.sh  # Testing utils script
+         |-> tests/
+         |     |---> test_utils.py      # Tests for utils
+         |-> utils/
+         |     |---> utils.py           # common utility functions
+         |     |---> loader.py          # Core loader for training
+         |-> demo.py                    # Demo file
+         |-> options.py                 # Set command line options
+         |-> train.py                   # Train file
+```
+
 ```bash
 git clone https://github.com/kvmanohar22/DIM.git
 cd DIM
 ```
 Append root of this directory to `PYTHONPATH` environment variable
 
-```export PYTHONPATH=$PYTHONPATH:`pwd`/..```
+```export PYTHONPATH=$PYTHONPATH:/path/to/DIM_directory/```
 
 ### Demo
 `bash ./scripts/demo.sh`
 
 The above script gives you a demo of images in `img` directory.
 
+### Full list of options
+```
+$ python demo.py --help
+usage: demo.py [-h] [--dataset_root DATASET_ROOT] [--log_root LOG_ROOT]
+               [--H H] [--W W] [--train_mode] [--max_epochs MAX_EPOCHS]
+               [--batch_size BATCH_SIZE] [--base_lr BASE_LR]
+               [--gpu_id GPU_ID] [--ckpt_frq CKPT_FRQ] [--alpha ALPHA]
+               [--epsilon EPSILON] [--ckpt_path CKPT_PATH]
+               [--img_path IMG_PATH] [--tri_path TRI_PATH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dataset_root DATASET_ROOT
+                        Root of dataset directory
+  --log_root LOG_ROOT   Directory to log data
+  --H H
+  --W W
+  --train_mode
+  --max_epochs MAX_EPOCHS
+  --batch_size BATCH_SIZE
+  --base_lr BASE_LR
+  --gpu_id GPU_ID
+  --ckpt_frq CKPT_FRQ   Frequency at which checkpoints are generated
+  --alpha ALPHA         Alpha value to weigh two types of losses
+  --epsilon EPSILON     Small value used in loss computation
+  --ckpt_path CKPT_PATH
+                        Path to Checkpoint
+  --img_path IMG_PATH   Path to Image
+  --tri_path TRI_PATH   Path to Trimap
+```
+
 If you want to test on a custom image, then run the following:
 `bash ./scripts/demo.sh path_to_image path_to_trimap`
-
-The model is tested on **Image Matting Dataset**. Please contact Brian Price (bprice@adobe.com) for the dataset. 
 
 ### Train
 If you have the above dataset:
 `bash ./scripts/train.sh path_to_root_of_train_dataset`
 
 To set more options, check out the `options.py` file and set them accordingly in `scripts/train.sh`
+
+## Things which I tried that did not work out
+- Using Xavier initialization (as suggested in the paper) for decoder network started producing `nan`s
+-  
