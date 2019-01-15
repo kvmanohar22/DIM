@@ -90,7 +90,33 @@ If you want to test on a custom image, then run the following:
 `bash ./scripts/demo.sh path_to_image path_to_trimap`
 
 ### Train
-If you have the above dataset:
+You can use the following script to train your custom dataset. The data directory should be as follows:
+
+```bash
+/path/to/data
+      |-> input/                # Image directory
+      |     |-> img_0.png
+      |     |-> img_1.png
+      |     |-
+      |     |-> img_X.png
+      |-> gt/                   # Ground truth alpha mattes
+      |     |-> img_0.png
+      |     |-> img_1.png
+      |     |-
+      |     |-> img_X.png
+      |-> trimap/               # Trimaps
+      |     |-> trimap_dir1/
+      |     |     |-> img_0.png
+      |     |     |-> img_1.png
+      |     |     |-
+      |     |     |-> img_X.png
+      |     |-> trimap_dir2/
+      |     |     |-> img_0.png
+      |     |     |-> img_1.png
+      |     |     |-
+      |     |     |-> img_X.png
+```
+
 `bash ./scripts/train.sh path_to_root_of_train_dataset`
 
 To set more options, check out the `options.py` file and set them accordingly in `scripts/train.sh`
