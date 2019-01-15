@@ -121,6 +121,8 @@ You can use the following script to train your custom dataset. The data director
 
 To set more options, check out the `options.py` file and set them accordingly in `scripts/train.sh`
 
-## Things which I tried that did not work out
+## Things which I tried that worked / did not work
 - Using Xavier initialization (as suggested in the paper) for decoder network started producing `nan`s
--  
+- The paper also suggests to use constant learning rate of `1e-5`. But the training didn't converge
+- Mean subtraction of images does produce comparatively good results
+ 
