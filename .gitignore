@@ -1,6 +1,6 @@
 __pycache__
 dataset
-log
+log*
 archive
 *.npy
 

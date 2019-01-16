@@ -2,9 +2,12 @@
 
 This is Chainer implementation of the paper **Deep Image Matting**
 
-<p align="center"><img width="80%" height="50%" src="imgs/network.png"/></p>
+<p align="center"><img width="80%" height="50%" src="imgs/loss.png"/></p>
 
 ## Example Results
+Evolution of matte as training progresses
+<p align="center"><img width="80%" height="80%" src="imgs/matte_evolution.gif"/></p>
+For other experimental results check out (#examples)
 
 ## Installation
 It's recommended to use anaconda environment.
@@ -121,8 +124,16 @@ You can use the following script to train your custom dataset. The data director
 
 To set more options, check out the `options.py` file and set them accordingly in `scripts/train.sh`
 
+## Experiments
+### Variation of loss with different learning rate schemes
+<p align="center"><img width="80%" height="50%" src="imgs/loss.png"/></p>
+
+<a name='examples'></a>
+### Experimental results
+
+
 ## Things which I tried that worked / did not work
 - Using Xavier initialization (as suggested in the paper) for decoder network started producing `nan`s
 - The paper also suggests to use constant learning rate of `1e-5`. But the training didn't converge
 - Mean subtraction of images does produce comparatively good results
- 
+
