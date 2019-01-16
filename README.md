@@ -2,12 +2,13 @@
 
 This is Chainer implementation of the paper **Deep Image Matting**
 
-<p align="center"><img width="80%" height="50%" src="imgs/loss.png"/></p>
+<p align="center"><img width="80%" height="50%" src="imgs/network.png"/></p>
 
 ## Example Results
 Evolution of matte as training progresses
-<p align="center"><img width="80%" height="80%" src="imgs/matte_evolution.gif"/></p>
-For other experimental results check out (#examples)
+<p align="center"><img width="30%" height="30%" src="imgs/matte_evolution.gif"/></p>
+
+For other experimental results check them out at the bottom of this page.
 
 ## Installation
 It's recommended to use anaconda environment.
@@ -126,7 +127,7 @@ To set more options, check out the `options.py` file and set them accordingly in
 
 ## Experiments
 ### Variation of loss with different learning rate schemes
-<p align="center"><img width="80%" height="50%" src="imgs/loss.png"/></p>
+<p align="center"><img width="50%" height="30%" src="imgs/loss.png"/></p>
 
 <a name='examples'></a>
 ### Experimental results
