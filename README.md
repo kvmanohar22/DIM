@@ -131,7 +131,7 @@ To set more options, check out the `options.py` file and set them accordingly in
 
 <a name='examples'></a>
 ### Experimental results
-From left to right. Background image, fore-ground image, predicted alpha matte, predicted blended image.
+From left to right. Background image, fore-ground image, predicted alpha matte, predicted blended image. Note that image are cropped.
 <div class="fig figcenter fighighlight">
   <img src="imgs/exp/bg_0.jpg" width="23%" style="margin-right:3px;"> 
   <img src="imgs/exp/fg_0.png" width="23%" style="margin-right:2px;">
