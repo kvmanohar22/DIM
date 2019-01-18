@@ -131,10 +131,33 @@ To set more options, check out the `options.py` file and set them accordingly in
 
 <a name='examples'></a>
 ### Experimental results
-
+From left to right. Background image, fore-ground image, predicted alpha matte, predicted blended image.
+<div class="fig figcenter fighighlight">
+  <img src="imgs/bg_0.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/fg_0.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/p_matte_0.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/p_RGB_0.png" width="23%">
+</div>
+<div class="fig figcenter fighighlight">
+  <img src="imgs/bg_1.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/fg_1.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/p_matte_1.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/p_RGB_1.png" width="23%">
+</div>
+<div class="fig figcenter fighighlight">
+  <img src="imgs/bg_2.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/fg_2.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/p_matte_2.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/p_RGB_2.png" width="23%">
+</div>
+<div class="fig figcenter fighighlight">
+  <img src="imgs/bg_3.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/fg_3.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/p_matte_3.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/p_RGB_3.png" width="23%">
+</div>
 
 ## Things which I tried that worked / did not work
 - Using Xavier initialization (as suggested in the paper) for decoder network started producing `nan`s
 - The paper also suggests to use constant learning rate of `1e-5`. But the training didn't converge
 - Mean subtraction of images does produce comparatively good results
-
