@@ -20,6 +20,7 @@ class Options(object):
       # Training options
       self.parser.add_argument('--train_mode', action='store_true', default=100)
       self.parser.add_argument('--max_epochs', type=int, default=100)
+      self.parser.add_argument('--xyz', type=str, default='')
       self.parser.add_argument('--batch_size', type=int, default=32)
       self.parser.add_argument('--base_lr', type=float, default=1e-5)
       self.parser.add_argument('--gpu_id', type=int, default=-1)

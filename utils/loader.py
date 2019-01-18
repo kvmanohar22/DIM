@@ -26,7 +26,7 @@ class Preprocess(object):
       self.size = (H, W)
 
    # Change this to `random_crop`
-   def crop(self, args, shape, crop_type=center_crop):
+   def crop(self, args, shape, crop_type=random_crop):
       """ Randomly crops the inputs to size `shape`
 
       Args:
@@ -37,6 +37,8 @@ class Preprocess(object):
       img, tri, alp = args
       img, params = crop_type(img, shape, return_param=True)
       x_slice, y_slice = params["x_slice"], params["y_slice"]
+      if tri is None:
+         return img
       tri = tri[:, y_slice, x_slice]
       alp = alp[:, y_slice, x_slice]
       return img, tri, alp
@@ -50,6 +52,8 @@ class Preprocess(object):
       """
       img, tri, alp = args
       img = resize(img, size)
+      if tri is None:
+         return img
       tri = resize(tri, size)
       if alp is None:
          return img, tri
@@ -149,7 +153,10 @@ class Loader(object):
       self.img_path = osp.join(self.dataset_root, self.type, "input")
       self.tri_path = osp.join(self.dataset_root, self.type, "trimap")
       self.alp_path = osp.join(self.dataset_root, self.type, "gt")
+      self.bgs_path = osp.join(self.dataset_root, self.type, "bgs")
 
+      self.bags = os.listdir(self.bgs_path)
+      self.curr_bg_idx = -1
       self.ids = [file for file in os.listdir(self.img_path)]
 
    def __len__(self):
@@ -173,6 +180,20 @@ class Loader(object):
                return img, tri, alp
       return img, tri, alp
 
+   def load_background(self):
+      """ Loads a background image
+      """
+      if self.curr_bg_idx == -1:
+         self.curr_bg_idx = 0
+      elif self.curr_bg_idx == len(self.bags):
+         np.random.shuffle(self.bags)
+         self.curr_bg_idx = 0
+
+      img = load_image(osp.join(self.bgs_path, self.bags[self.curr_bg_idx]))
+      self.curr_bg_idx += 1
+      img = self.preprocess.resize((img, None, None), (self.H, self.W))
+      return img
+
    def load_batch(self, start_idx, end_idx, change_tri_map):
       """ Loads batch of data
 
@@ -184,20 +205,24 @@ class Loader(object):
          self.curr_trimap_idx = 0
       elif change_tri_map:
          next_val = self.curr_trimap_idx+1
+         np.random.shuffle(self.ids)
          self.curr_trimap_idx = next_val if next_val < len(self.trimaps) else 0
 
+      # Select the background image
       images  = np.empty((self.batch_size, 3, self.H, self.W), dtype=np.float32)
       trimaps = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
       outputs = np.empty((self.batch_size, 1, self.H, self.W), dtype=np.float32)
+      backgrounds = np.empty((self.batch_size, 3, self.H, self.W), dtype=np.float32)
       files   = []
       for idx, curr_idx in enumerate(range(start_idx, end_idx)):
          img, tri, alp = self.load_single(curr_idx, self.trimaps[self.curr_trimap_idx])
          images[idx]  = img
          trimaps[idx] = tri
          outputs[idx] = alp
+         backgrounds[idx] = self.load_background()
          files.append(self.ids[curr_idx])
 
-      return images, trimaps, outputs, files
+      return images, trimaps, outputs, files, backgrounds
 
 if __name__ == '__main__':
    opts = Options().parse(train_mode=True)

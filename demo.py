@@ -20,17 +20,6 @@ from chainer.backends import cuda
 from chainer.backends.cuda import to_gpu
 from chainer.backends.cuda import to_cpu
 
-def save(pred_matte, pred_RGB, blends):
-   p_alp = CHW2HWC(args[0])
-   t_alp = CHW2HWC(args[1])
-   p_RGB = CHW2HWC(args[2])
-   t_RGB = CHW2HWC(args[3])
-
-   mkdirs([osp.join(root, 'epoch_{}'.format(epoch))])
-
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_alp_iidx_{}_idx_{}.png".format(idx, 0)), np.squeeze(t_alp[0]))
-   io.imsave(osp.join(root, "epoch_{}".format(epoch), "t_RGB_iidx_{}_idx_{}.png".format(idx, 0)), t_RGB[0])
-
 def main(opts):
    H = opts["H"]
    W = opts["W"]
@@ -57,8 +46,9 @@ def main(opts):
    inputs[0, 3:, ...] = trimaps
 
    # Transfer to GPU
+   inputs /= 255.0
    if opts["gpu_id"] >= 0:
-      inputs  = to_gpu(inputs) / 255.0
+      inputs  = to_gpu(inputs)
 
    # Forward pass
    with chainer.using_config('train', False), \
@@ -70,6 +60,7 @@ def main(opts):
    # Predict RGB
    predicted_matte = (to_cpu(predictions.data) * 255).astype(np.uint8)
    predicted_alp = to_cpu(predictions.data)
+   io.imsave(opts["img_path"].replace(".png", "_target_trimap.png"), np.squeeze(trimaps))
    predicted_matte = np.where(np.equal(trimaps, 128),
                               predicted_alp,
                               trimaps / 255)
@@ -80,11 +71,7 @@ def main(opts):
          fgs, bgs)).astype(np.uint8)
 
    # Save
-   print('Saving predicted matte and RGB...', end=' ')
    io.imsave(opts["img_path"].replace(".png", "_predicted_matte.png"), np.squeeze(predicted_matte[0]))
-   io.imsave(opts["img_path"].replace(".png", "_predicted_RGB.png"), CHW2HWC(predicted_RGB)[0])
-   print('Done')
-
    new_bgs = os.listdir(opts["newimgs_dir"])
    if len(new_bgs) > 0:
       for idx, bg in enumerate(new_bgs):

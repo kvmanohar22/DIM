@@ -9,6 +9,7 @@ from chainer.backends.cuda import to_gpu
 from chainer.backends.cuda import to_cpu
 from chainer.initializers import GlorotUniform
 from chainer.initializers import LeCunUniform
+from chainer.initializers import HeNormal
 
 from chainercv.links import VGG16
 
@@ -42,36 +43,32 @@ class EncoderDecoder(chainer.Chain):
          self.conv5_2 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=3, stride=1, pad=1)
          self.conv5_3 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=3, stride=1, pad=1)
 
-         self.conv6_1 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=1, stride=1, pad=1,
-                                        initialW=None)
-         self.bn5     = L.BatchNormalization(self.out_c*8)
-         self.dconv5  = L.Deconvolution2D(None, self.out_c*8, ksize=9, initialW=None)
+         self.conv6_1 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=3, stride=1, pad=1)
+         self.bn6_1     = L.BatchNormalization(self.out_c*8)
+         self.conv6_2 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=3, stride=1, pad=1)
+         self.bn6_2     = L.BatchNormalization(self.out_c*8)
 
-         self.conv7_1 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=5, stride=1, pad=1,
-                                        initialW=None)
-         self.bn4     = L.BatchNormalization(self.out_c*8)
-         self.dconv4  = L.Deconvolution2D(None, self.out_c*8, ksize=3, initialW=None)
+         self.conv7_1 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=3, stride=1, pad=1)
+         self.bn7_1     = L.BatchNormalization(self.out_c*8)
+         self.conv7_2 = L.Convolution2D(self.out_c*8, self.out_c*8, ksize=3, stride=1, pad=1)
+         self.bn7_2     = L.BatchNormalization(self.out_c*8)
 
-         self.conv8_1 = L.Convolution2D(self.out_c*8, self.out_c*4, ksize=5, stride=1, pad=1,
-                                        initialW=None)
-         self.bn3     = L.BatchNormalization(self.out_c*4)
-         self.dconv3  = L.Deconvolution2D(None, self.out_c*4, ksize=5, initialW=None, pad=1)
+         self.conv8_1 = L.Convolution2D(self.out_c*8, self.out_c*4, ksize=3, stride=1, pad=1)
+         self.bn8_1     = L.BatchNormalization(self.out_c*4)
+         self.conv8_2 = L.Convolution2D(self.out_c*4, self.out_c*4, ksize=3, stride=1, pad=1)
+         self.bn8_2     = L.BatchNormalization(self.out_c*4)
 
-         self.conv9_1 = L.Convolution2D(self.out_c*4, self.out_c*2, ksize=5, stride=1, pad=1,
-                                        initialW=None)
-         self.bn2     = L.BatchNormalization(self.out_c*2)
-         self.dconv2  = L.Deconvolution2D(None, self.out_c*2, ksize=3, initialW=None)
+         self.conv9_1 = L.Convolution2D(self.out_c*4, self.out_c*2, ksize=3, stride=1, pad=1)
+         self.bn9_1     = L.BatchNormalization(self.out_c*2)
+         self.conv9_2 = L.Convolution2D(self.out_c*2, self.out_c*2, ksize=3, stride=1, pad=1)
+         self.bn9_2     = L.BatchNormalization(self.out_c*2)
 
-         self.convf_1 = L.Convolution2D(self.out_c*2, self.out_c*1, ksize=5, stride=1, pad=1,
-                                        initialW=None)
-         self.bn1     = L.BatchNormalization(self.out_c*1)
-         self.dconv1  = L.Deconvolution2D(None, self.out_c*1, ksize=3, initialW=None)
+         self.convf_1 = L.Convolution2D(self.out_c*2, self.out_c*1, ksize=3, stride=1, pad=1)
+         self.bnf_1     = L.BatchNormalization(self.out_c*1)
+         self.convf_2 = L.Convolution2D(self.out_c*1, self.out_c*1, ksize=3, stride=1, pad=1)
+         self.bnf_2     = L.BatchNormalization(self.out_c*1)
 
-         self.conv0_1 = L.Convolution2D(self.out_c*1, self.out_c, ksize=5, stride=1, pad=1,
-                                        initialW=None)
-         self.bn0     = L.BatchNormalization(self.out_c)
-
-         self.convv   = L.Convolution2D(self.out_c, 1, ksize=1, stride=1, pad=1, initialW=None)
+         self.convv   = L.Convolution2D(self.out_c, 1, ksize=1, stride=1, pad=0)
 
       # Load VGG network weights
       if opts["train_mode"]:
@@ -101,26 +98,26 @@ class EncoderDecoder(chainer.Chain):
       x = F.relu(self.conv5_3(x))
       x = F.max_pooling_2d(x, ksize=2, stride=2)
 
-      x = F.relu(self.bn5(self.conv6_1(x)))
-      x = self.dconv5(x)
+      x = F.relu(self.conv6_1(x))
+      x = F.relu(self.conv6_2(x))
       x = F.unpooling_2d(x, stride=2, ksize=5, pad=1)
 
-      x = F.relu(self.bn4(self.conv7_1(x)))
-      x = self.dconv4(x)
+      x = F.relu(self.conv7_1(x))
+      x = F.relu(self.conv7_2(x))
       x = F.unpooling_2d(x, stride=2, ksize=5, pad=1)
 
-      x = F.relu(self.bn3(self.conv8_1(x)))
-      x = self.dconv3(x)
+      x = F.relu(self.conv8_1(x))
+      x = F.relu(self.conv8_2(x))
       x = F.unpooling_2d(x, stride=2, ksize=5, pad=1)
 
-      x = F.relu(self.bn2(self.conv9_1(x)))
-      x = self.dconv2(x)
+      x = F.relu(self.conv9_1(x))
+      x = F.relu(self.conv9_2(x))
       x = F.unpooling_2d(x, stride=2, ksize=5, pad=1)
 
-      x = F.relu(self.bn1(self.convf_1(x)))
-      x = self.dconv1(x)
+      x = F.relu(self.convf_1(x))
+      x = F.relu(self.convf_2(x))
+      x = F.unpooling_2d(x, stride=2, ksize=5, pad=1)
 
-      x = F.relu(self.bn0(self.conv0_1(x)))
       x = F.sigmoid(self.convv(x))
 
       return x
@@ -196,4 +193,8 @@ if __name__ == '__main__':
    if opts["gpu_id"] >= 0:
       model.to_gpu()
       x = to_gpu(x)
-   print(model(x).shape)
+   
+   with chainer.using_config('train', False), \
+         chainer.function.no_backprop_mode():
+      y = model(x)
+   print(y.shape)
