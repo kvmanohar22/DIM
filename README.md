@@ -133,28 +133,28 @@ To set more options, check out the `options.py` file and set them accordingly in
 ### Experimental results
 From left to right. Background image, fore-ground image, predicted alpha matte, predicted blended image.
 <div class="fig figcenter fighighlight">
-  <img src="imgs/bg_0.jpg" width="23%" style="margin-right:3px;"> 
-  <img src="imgs/fg_0.png" width="23%" style="margin-right:2px;">
-  <img src="imgs/p_matte_0.png" width="23%" style="margin-right:3px;">
-  <img src="imgs/p_RGB_0.png" width="23%">
+  <img src="imgs/exp/bg_0.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/exp/fg_0.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/exp/p_matte_0.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/exp/p_RGB_0.png" width="23%">
 </div>
 <div class="fig figcenter fighighlight">
-  <img src="imgs/bg_1.jpg" width="23%" style="margin-right:3px;"> 
-  <img src="imgs/fg_1.png" width="23%" style="margin-right:2px;">
-  <img src="imgs/p_matte_1.png" width="23%" style="margin-right:3px;">
-  <img src="imgs/p_RGB_1.png" width="23%">
+  <img src="imgs/exp/bg_1.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/exp/fg_1.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/exp/p_matte_1.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/exp/p_RGB_1.png" width="23%">
 </div>
 <div class="fig figcenter fighighlight">
-  <img src="imgs/bg_2.jpg" width="23%" style="margin-right:3px;"> 
-  <img src="imgs/fg_2.png" width="23%" style="margin-right:2px;">
-  <img src="imgs/p_matte_2.png" width="23%" style="margin-right:3px;">
-  <img src="imgs/p_RGB_2.png" width="23%">
+  <img src="imgs/exp/bg_2.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/exp/fg_2.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/exp/p_matte_2.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/exp/p_RGB_2.png" width="23%">
 </div>
 <div class="fig figcenter fighighlight">
-  <img src="imgs/bg_3.jpg" width="23%" style="margin-right:3px;"> 
-  <img src="imgs/fg_3.png" width="23%" style="margin-right:2px;">
-  <img src="imgs/p_matte_3.png" width="23%" style="margin-right:3px;">
-  <img src="imgs/p_RGB_3.png" width="23%">
+  <img src="imgs/exp/bg_3.jpg" width="23%" style="margin-right:3px;"> 
+  <img src="imgs/exp/fg_3.png" width="23%" style="margin-right:2px;">
+  <img src="imgs/exp/p_matte_3.png" width="23%" style="margin-right:3px;">
+  <img src="imgs/exp/p_RGB_3.png" width="23%">
 </div>
 
 ## Things which I tried that worked / did not work
